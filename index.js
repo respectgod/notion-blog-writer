@@ -18,13 +18,13 @@ async function fetchNotionRows() {
 }
 
 async function generateBlogText(entry) {
+  const props = entry.properties;
 
   if (!props['음식점 이름']?.title?.[0]?.plain_text) {
     console.warn('❗ 음식점 이름이 비어있어 생략됨');
     return '';
   }
 
-  const props = entry.properties;
   const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
   const menu = props['메뉴']?.rich_text[0]?.plain_text || '';
   const time = props['방문시간']?.rich_text[0]?.plain_text || '';
