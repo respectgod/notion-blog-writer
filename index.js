@@ -1,34 +1,3 @@
-// 📁 .github/workflows/generate-blog.yml
-name: Generate Blog Post from Notion
-
-on:
-  schedule:
-    - cron: '0 0 * * *' # 매일 자정(UTC) 실행 → 한국시간 오전 9시
-  workflow_dispatch:    # 수동 실행도 가능
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run blog generator
-        run: node index.js
-        env:
-          NOTION_KEY: ${{ secrets.NOTION_KEY }}
-          NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-
 // 📁 index.js
 import { Client as NotionClient } from '@notionhq/client';
 import { OpenAI } from 'openai';
