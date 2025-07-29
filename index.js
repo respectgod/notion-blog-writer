@@ -116,7 +116,7 @@ console.log('🧾 전달된 프롬프트:', prompt);
 
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     messages: [
       { role: 'system', content: '넌 네이버 블로그 전문 작가야.' },
       { role: 'user', content: prompt },
