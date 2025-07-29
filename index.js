@@ -1,3 +1,34 @@
+// 📁 .github/workflows/generate-blog.yml
+name: Generate Blog Post from Notion
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 매일 자정(UTC) 실행 → 한국시간 오전 9시
+  workflow_dispatch:    # 수동 실행도 가능
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run blog generator
+        run: node index.js
+        env:
+          NOTION_KEY: ${{ secrets.NOTION_KEY }}
+          NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+
 // 📁 index.js
 import { Client as NotionClient } from '@notionhq/client';
 import { OpenAI } from 'openai';
@@ -61,17 +92,25 @@ async function updateNotion(entry, blogText) {
     },
   });
 
+  // 🔐 안전하게 블록 추가: GPT 출력이 2000자 이상일 수 있음 → 나눠서 처리 (간단 버전)
+  const blocks = [
+    {
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: blogText.slice(0, 1999) },
+          },
+        ],
+      },
+    },
+  ];
+
   await notion.blocks.children.append({
     block_id: entry.id,
-    children: [
-      {
-        object: 'block',
-        type: 'paragraph',
-        paragraph: {
-          rich_text: [{ type: 'text', text: { content: blogText } }],
-        },
-      },
-    ],
+    children: blocks,
   });
 }
 
@@ -84,4 +123,5 @@ export default async function run() {
   }
 }
 
+// ✅ 빠뜨렸던 실행 진입점 추가
 run().catch(console.error);
