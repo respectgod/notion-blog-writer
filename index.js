@@ -1,9 +1,8 @@
-// 📁 index.js
 import { Client as NotionClient } from '@notionhq/client';
 import { OpenAI } from 'openai';
 
 const notion = new NotionClient({ auth: process.env.NOTION_KEY });
-// const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
 // 공통: rich_text, title, 등 안전하게 접근
 function getPlainText(prop, type = 'rich_text') {
@@ -16,6 +15,15 @@ function getPlainText(prop, type = 'rich_text') {
 
 function getTitleText(prop) {
   return getPlainText(prop, 'title');
+}
+
+// ✅ Multi-select용 텍스트 변환 함수
+function getMultiSelectText(prop) {
+  try {
+    return prop?.multi_select?.map(item => item.name).join(', ') || '';
+  } catch {
+    return '';
+  }
 }
 
 // ✅ Notion에서 작성되지 않은 행 가져오기
@@ -39,8 +47,7 @@ async function generateBlogText(entry) {
     return '';
   }
 
-  const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
-
+  const restaurant = getTitleText(props['음식점 이름']);
   const menu = getPlainText(props['메뉴']);
   const time = getPlainText(props['방문시간']);
   const location = getPlainText(props['지역']);
@@ -48,18 +55,19 @@ async function generateBlogText(entry) {
   const open = getPlainText(props['영업시간']);
   const breakTime = getPlainText(props['브레이크타임']);
   const holiday = getPlainText(props['휴무정보']);
-  const keyword = getPlainText(props['필수키워드']);
+  const keywordList = getMultiSelectText(props['필수키워드']);
+  const mainKeyword = keywordList.split(',')[0]?.trim() || '';
 
   const prompt = `
 넌 네이버 블로그 맛집 20년차의 전문 작가야 그리고 SEO 최적화를 잘 지키는 작가야.
-검색을 할때는 구글 검색결과보다는 네이버 검색결과로 말해줘
+검색을 할때는 구글 검색결과보다는 네이버 검색결과로 말해줘.
 메뉴는 그 음식점을 네이버에 검색해서, 가장 유명한 메뉴를 중심으로 맛과 모양을 써줘.
-아래 조건에 맞춰서 네이버 블로그 포스팅을 작성해주는데, 규칙은 반드시 지켜야 하고 규칙을 지킬수 없다면 말해줘
+아래 조건에 맞춰서 네이버 블로그 포스팅을 작성해주는데, 규칙은 반드시 지켜야 하고 규칙을 지킬수 없다면 말해줘.
 
 [규칙]
 1. 글은 2000자 정도 작성한다.
 2. 내용에 맞는 타이틀과 서브타이틀을 한 문장으로 적는다.
-3. ${keyword}는 문맥에 잘 맞게 어색하지 않도록 글에 3회 이상 반복한다.
+3. "${mainKeyword}"는 문맥에 잘 맞게 어색하지 않도록 글에 3회 이상 반복한다.
 4. AI 티가 나지 않도록 자연스럽게 작성한다.
 5. 말투는 친근한 존댓말로 "ㅇㅇ 했어요~" 아니면 "ㅇㅇ 입니다."로 쓴다.
 6. 타이틀 예시 : [성수/스테이크] 데이트하기 딱 좋은 분위기 맛집 | 놉스
@@ -75,7 +83,6 @@ async function generateBlogText(entry) {
 내용은
 타이틀 "${restaurant}"
 서브타이틀
-
 
 웨이팅 소요 시간
 ${time}
@@ -99,7 +106,7 @@ ${menu}
 (음식 사진과 맛 설명)
 
 seo최적화 태그들
-예: #성수맛집 #놉스스테이크 #성수스테이크 #데이트맛집 #서울스테이크맛집
+예: #${location}맛집 #${restaurant} #${location}${category} #데이트맛집 #${mainKeyword}
 `;
 
   const completion = await openai.chat.completions.create({
@@ -115,7 +122,6 @@ seo최적화 태그들
 
 // ✅ Notion에 글 업데이트
 async function updateNotion(entry, blogText) {
-  // 작성됨 표시
   await notion.pages.update({
     page_id: entry.id,
     properties: {
@@ -123,7 +129,6 @@ async function updateNotion(entry, blogText) {
     },
   });
 
-  // GPT 응답 길이 대응
   const MAX_BLOCK_SIZE = 1999;
   const blocks = [];
 
@@ -160,12 +165,11 @@ export default async function run() {
       continue;
     }
 
-    await new Promise((res) => setTimeout(res, 1000)); // 1초 대기
+    await new Promise((res) => setTimeout(res, 1000));
     await updateNotion(row, text);
 
     const name = getTitleText(row.properties['음식점 이름']);
-    console.log(`✅ ${row.properties['음식점 이름']?.title?.[0]?.plain_text || '???'} 작성 완료`);
-    console.log('▶ props["음식점 이름"]:', JSON.stringify(props['음식점 이름'], null, 2));
+    console.log(`✅ ${name} 작성 완료`);
   }
 }
 
