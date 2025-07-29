@@ -83,3 +83,5 @@ export default async function run() {
     console.log(`✅ ${row.properties['음식점 이름'].title[0]?.plain_text} 작성 완료`);
   }
 }
+
+run().catch(console.error);
