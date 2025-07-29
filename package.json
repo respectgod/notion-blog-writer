@@ -1,0 +1,24 @@
+{
+  "name": "blog",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/respectgod/notion-blog-writer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/respectgod/notion-blog-writer/issues"
+  },
+  "homepage": "https://github.com/respectgod/notion-blog-writer#readme",
+  "description": "",
+  "dependencies": {
+    "@notionhq/client": "^4.0.1",
+    "openai": "^5.10.2"
+  }
+}
