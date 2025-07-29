@@ -113,12 +113,20 @@ async function updateNotion(entry, blogText) {
 
 export default async function run() {
   const rows = await fetchNotionRows();
+
   for (const row of rows) {
     const text = await generateBlogText(row);
+
+    if (!text || text.trim() === '') {
+      console.warn('🚫 생성된 글이 비어있어서 생략됨');
+      continue; // 👈 다음 행으로 넘어가도록!
+    }
+
     await updateNotion(row, text);
-    console.log(`✅ ${row.properties['음식점 이름'].title[0]?.plain_text} 작성 완료`);
+    console.log(`✅ ${row.properties['음식점 이름']?.title?.[0]?.plain_text || '???'} 작성 완료`);
   }
 }
+
 
 // ✅ 빠뜨렸던 실행 진입점 추가
 run().catch(console.error);
