@@ -57,6 +57,8 @@ async function generateBlogText(entry) {
   const breakTime = getPlainText(props['브레이크타임']);
   const holiday = getPlainText(props['휴무정보']);
   const keyword = getMultiSelectText(props['필수키워드']);
+  const mainKeyword = keyword.split(',')[0]?.trim() || restaurant;
+
 
   const prompt = `
 넌 네이버 블로그 맛집 20년차의 전문 작가야 그리고 SEO 최적화를 잘 지키는 작가야.
@@ -67,7 +69,7 @@ async function generateBlogText(entry) {
 [규칙]
 1. 글은 2000자 정도 작성한다.
 2. 내용에 맞는 타이틀과 서브타이틀을 한 문장으로 적는다.
-3. ${keyword}는 문맥에 잘 맞게 어색하지 않도록 글에 3회 이상 반복한다.
+3. ${mainKeyword}는 문맥에 잘 맞게 어색하지 않도록 글에 3회 이상 반복한다.
 4. AI 티가 나지 않도록 자연스럽게 작성한다.
 5. 말투는 친근한 존댓말로 "ㅇㅇ 했어요~" 아니면 "ㅇㅇ 입니다."로 쓴다.
 6. 타이틀 예시 : [성수/스테이크] 데이트하기 딱 좋은 분위기 맛집 | 놉스
@@ -107,7 +109,7 @@ ${menu}
 (음식 사진과 맛 설명)
 
 seo최적화 태그들
-예: #성수맛집 #놉스스테이크 #성수스테이크 #데이트맛집 #서울스테이크맛집
+예시(참고용): #성수맛집 #놉스스테이크 #성수스테이크 #데이트맛집 #서울스테이크맛집
 `;
 
 console.log('🧾 전달된 프롬프트:', prompt);
