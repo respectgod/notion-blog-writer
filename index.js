@@ -2,10 +2,23 @@
 import { Client as NotionClient } from '@notionhq/client';
 import { OpenAI } from 'openai';
 
-// 환경변수는 GitHub Secrets로부터 가져옴
 const notion = new NotionClient({ auth: process.env.NOTION_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
+// 공통: rich_text, title, 등 안전하게 접근
+function getPlainText(prop, type = 'rich_text') {
+  try {
+    return prop?.[type]?.[0]?.plain_text || '';
+  } catch {
+    return '';
+  }
+}
+
+function getTitleText(prop) {
+  return getPlainText(prop, 'title');
+}
+
+// ✅ Notion에서 작성되지 않은 행 가져오기
 async function fetchNotionRows() {
   const response = await notion.databases.query({
     database_id: process.env.NOTION_DB_ID,
@@ -17,21 +30,22 @@ async function fetchNotionRows() {
   return response.results;
 }
 
+// ✅ GPT로 블로그 글 생성
 async function generateBlogText(entry) {
   const props = entry.properties;
 
-  if (!props['음식점 이름']?.title?.[0]?.plain_text) {
+  const restaurant = getTitleText(props['음식점 이름']);
+  if (!restaurant) {
     console.warn('❗ 음식점 이름이 비어있어 생략됨');
     return '';
   }
 
-  const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
-  const menu = props['메뉴']?.rich_text[0]?.plain_text || '';
-  const time = props['방문시간']?.rich_text[0]?.plain_text || '';
-  const location = props['가게 위치']?.rich_text[0]?.plain_text || '';
-  const open = props['영업시간']?.rich_text[0]?.plain_text || '';
-  const breakTime = props['브레이크타임']?.rich_text[0]?.plain_text || '';
-  const holiday = props['휴무정보']?.rich_text[0]?.plain_text || '';
+  const menu = getPlainText(props['메뉴']);
+  const time = getPlainText(props['방문시간']);
+  const location = getPlainText(props['가게 위치']);
+  const open = getPlainText(props['영업시간']);
+  const breakTime = getPlainText(props['브레이크타임']);
+  const holiday = getPlainText(props['휴무정보']);
 
   const prompt = `
 넌 네이버 블로그 맛집 전문 작가야. 아래 정보를 바탕으로 내 블로그 스타일에 맞는 긴 글을 써줘. SEO고려 해야되고, 타이틀과 서브타이틀은 한눈에 띌수 있게 해줘. 약간 어그로 끌어도됨
@@ -68,7 +82,7 @@ ${menu}
 (음식 사진과 맛 설명)
 
 seo최적화 태그들
-`;  
+`;
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4',
@@ -78,10 +92,12 @@ seo최적화 태그들
     ],
   });
 
-  return completion.choices[0].message.content;
+  return completion.choices?.[0]?.message?.content || '';
 }
 
+// ✅ Notion에 글 업데이트
 async function updateNotion(entry, blogText) {
+  // 작성됨 표시
   await notion.pages.update({
     page_id: entry.id,
     properties: {
@@ -89,21 +105,24 @@ async function updateNotion(entry, blogText) {
     },
   });
 
-  // 🔐 안전하게 블록 추가: GPT 출력이 2000자 이상일 수 있음 → 나눠서 처리 (간단 버전)
-  const blocks = [
-    {
+  // GPT 응답 길이 대응
+  const MAX_BLOCK_SIZE = 1999;
+  const blocks = [];
+
+  for (let i = 0; i < blogText.length; i += MAX_BLOCK_SIZE) {
+    blocks.push({
       object: 'block',
       type: 'paragraph',
       paragraph: {
         rich_text: [
           {
             type: 'text',
-            text: { content: blogText.slice(0, 1999) },
+            text: { content: blogText.slice(i, i + MAX_BLOCK_SIZE) },
           },
         ],
       },
-    },
-  ];
+    });
+  }
 
   await notion.blocks.children.append({
     block_id: entry.id,
@@ -111,6 +130,7 @@ async function updateNotion(entry, blogText) {
   });
 }
 
+// ✅ 메인 실행 함수
 export default async function run() {
   const rows = await fetchNotionRows();
 
@@ -119,14 +139,18 @@ export default async function run() {
 
     if (!text || text.trim() === '') {
       console.warn('🚫 생성된 글이 비어있어서 생략됨');
-      continue; // 👈 다음 행으로 넘어가도록!
+      continue;
     }
 
+    await new Promise((res) => setTimeout(res, 1000)); // 1초 대기
     await updateNotion(row, text);
-    console.log(`✅ ${row.properties['음식점 이름']?.title?.[0]?.plain_text || '???'} 작성 완료`);
+
+    const name = getTitleText(row.properties['음식점 이름']);
+    console.log(`✅ ${name || '???'} 작성 완료`);
   }
 }
 
-
-// ✅ 빠뜨렸던 실행 진입점 추가
-run().catch(console.error);
+// ✅ 진입점
+run().catch((err) => {
+  console.error('🚨 오류 발생:', err.message);
+});
