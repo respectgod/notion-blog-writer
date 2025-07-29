@@ -3,7 +3,7 @@ import { Client as NotionClient } from '@notionhq/client';
 import { OpenAI } from 'openai';
 
 const notion = new NotionClient({ auth: process.env.NOTION_KEY });
-const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
 // 공통: rich_text, title, 등 안전하게 접근
 function getPlainText(prop, type = 'rich_text') {
@@ -43,24 +43,40 @@ async function generateBlogText(entry) {
 
   const menu = getPlainText(props['메뉴']);
   const time = getPlainText(props['방문시간']);
-  const location = getPlainText(props['가게 위치']);
+  const location = getPlainText(props['지역']);
+  const category = getPlainText(props['카테고리']);
   const open = getPlainText(props['영업시간']);
   const breakTime = getPlainText(props['브레이크타임']);
   const holiday = getPlainText(props['휴무정보']);
+  const keyword = getPlainText(props['필수키워드']);
 
   const prompt = `
-넌 네이버 블로그 맛집 전문 작가야. 아래 정보를 바탕으로 내 블로그 스타일에 맞는 긴 글을 써줘. SEO고려 해야되고, 타이틀과 서브타이틀은 한눈에 띌수 있게 해줘. 약간 어그로 끌어도됨
-대답은 친근한 존댓말로 해줘. "ㅇㅇ 했어요~" 아니면 "ㅇㅇ 입니다."
-맞춤법 검사는 알아서 잘 해주고, 검색을 할때는 구글 검색결과보다는 네이버 검색결과로 말해줘
-메뉴는 그 음식점 검색어 유입중에 가장 많은걸 차지하는것 부터 써줘
+넌 네이버 블로그 맛집 20년차의 전문 작가야 그리고 SEO 최적화를 잘 지키는 작가야.
+검색을 할때는 구글 검색결과보다는 네이버 검색결과로 말해줘
+메뉴는 그 음식점을 네이버에 검색해서, 가장 유명한 메뉴를 중심으로 맛과 모양을 써줘.
+아래 조건에 맞춰서 네이버 블로그 포스팅을 작성해주는데, 규칙은 반드시 지켜야 하고 규칙을 지킬수 없다면 말해줘
 
-블로그 형식은 다음과 같아:
-타이틀은 
-[지역이름/메뉴의카테고리] 타이틀 | ${restaurant}
+[규칙]
+1. 글은 2000자 정도 작성한다.
+2. 내용에 맞는 타이틀과 서브타이틀을 한 문장으로 적는다.
+3. ${keyword}는 문맥에 잘 맞게 어색하지 않도록 글에 3회 이상 반복한다.
+4. AI 티가 나지 않도록 자연스럽게 작성한다.
+5. 말투는 친근한 존댓말로 "ㅇㅇ 했어요~" 아니면 "ㅇㅇ 입니다."로 쓴다.
+6. 타이틀 예시 : [성수/스테이크] 데이트하기 딱 좋은 분위기 맛집 | 놉스
+7. 서브타이틀 예시: “연인과 특별한 날을 보내기 좋은 스테이크집”
+8. 위의 타이틀과 서브타이틀의 예시를 보고 사람들이 관심을 가질만한 키워드를 넣어서 타이틀과 서브타이틀 적어줘.
+9. 글을 다 쓰고 나면 위의 규칙을 모두 지켰는지 다시 한번 스스로 점검한다.
+10. 위의 규칙을 지키지 않았던 부분이 있다면 알맞게 수정한다.
+
+[참고 형식]
+타이틀은 6~8단어 정도로, 지역+카테고리+감정+핵심키워드가 모두 담기면 더 좋습니다.
+[${location}/${category}] 타이틀 | ${restaurant}
 
 내용은
 타이틀 "${restaurant}"
 서브타이틀
+
+
 웨이팅 소요 시간
 ${time}
 --
@@ -76,17 +92,18 @@ ${time}
 "메뉴판과 설명"
 (메뉴판 사진)
 ${menu}
-(유명한 메뉴에 대한 설명)
+(네이버 검색을 통해 유명한 메뉴에 대한 설명)
 "테이블 세팅과 설명"
 (기본반찬, 테이블 기본 세팅)
 "음식"
 (음식 사진과 맛 설명)
 
 seo최적화 태그들
+예: #성수맛집 #놉스스테이크 #성수스테이크 #데이트맛집 #서울스테이크맛집
 `;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
+    model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: '넌 네이버 블로그 전문 작가야.' },
       { role: 'user', content: prompt },
