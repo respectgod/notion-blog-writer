@@ -38,6 +38,14 @@ async function fetchNotionRows() {
   return response.results;
 }
 
+function getCheckboxValue(prop) {
+  try {
+    return !!prop?.checkbox;
+  } catch {
+    return false;
+  }
+}
+
 // ✅ GPT로 블로그 글 생성
 async function generateBlogText(entry) {
   const props = entry.properties;
@@ -50,15 +58,18 @@ async function generateBlogText(entry) {
   const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
 
   const menu = getPlainText(props['메뉴']);
+  const weekend = getCheckboxValue(props['주말 여부']);
   const time = getPlainText(props['방문시간']);
   const location = getPlainText(props['지역']);
   const category = getPlainText(props['카테고리']);
   const open = getPlainText(props['영업시간']);
   const breakTime = getPlainText(props['브레이크타임']);
+  const waitingTime = getPlainText(props['웨이팅시간']);
   const holiday = getPlainText(props['휴무정보']);
   const keyword = getMultiSelectText(props['필수키워드']);
   const mainKeyword = keyword.split(',')[0]?.trim() || restaurant;
 
+  const weekendVisit = weekend ? '주말' : '평일';
 
   const prompt = `
 넌 네이버 블로그 맛집 20년차의 전문 작가야 그리고 SEO 최적화를 잘 지키는 작가야.
@@ -86,9 +97,6 @@ async function generateBlogText(entry) {
 타이틀 "${restaurant}"
 서브타이틀
 
-
-웨이팅 소요 시간
-${time}
 --
 영업시간
 평일 : ${open}
@@ -96,6 +104,10 @@ ${time}
 브레이크타임 : ${breakTime}
 휴무정보 : ${holiday}
 --
+
+${weekendVisit} ${time}시 방문
+웨이팅 ${waitingTime}분
+
 
 "내부사진과 설명"
 (좌석간 간격 어떤지)
