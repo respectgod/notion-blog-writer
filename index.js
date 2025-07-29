@@ -34,11 +34,12 @@ async function fetchNotionRows() {
 async function generateBlogText(entry) {
   const props = entry.properties;
 
-  const restaurant = getTitleText(props['음식점 이름']);
-  if (!restaurant) {
+  if (!props['음식점 이름']?.title?.[0]?.plain_text) {
     console.warn('❗ 음식점 이름이 비어있어 생략됨');
     return '';
   }
+
+  const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
 
   const menu = getPlainText(props['메뉴']);
   const time = getPlainText(props['방문시간']);
@@ -146,7 +147,8 @@ export default async function run() {
     await updateNotion(row, text);
 
     const name = getTitleText(row.properties['음식점 이름']);
-    console.log(`✅ ${name || '???'} 작성 완료`);
+    console.log(`✅ ${row.properties['음식점 이름']?.title?.[0]?.plain_text || '???'} 작성 완료`);
+    console.log('▶ props["음식점 이름"]:', JSON.stringify(props['음식점 이름'], null, 2));
   }
 }
 
