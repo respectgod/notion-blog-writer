@@ -86,7 +86,7 @@ seo최적화 태그들
 `;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: 'gpt-3.5-turbo',
     messages: [
       { role: 'system', content: '넌 네이버 블로그 전문 작가야.' },
       { role: 'user', content: prompt },
