@@ -27,9 +27,6 @@ function getMultiSelectText(prop) {
   }
 }
 
-const query = `${restaurant} ${location} ${category}`;
-const searchSummary = (await searchNaverBlogs(query)).join('\n');
-
 async function testSearch() {
   const blogs = await searcnNaverBlogs(`${searchSummary}`);
   console.log("검색 결과: \n " + blogs.join('\n'))
@@ -67,6 +64,9 @@ async function generateBlogText(entry) {
   }
 
   const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
+
+  const query = `${restaurant} ${location} ${category}`;
+  const searchSummary = (await searchNaverBlogs(query)).join('\n'); 
 
   const menu = getPlainText(props['메뉴']);
   const weekend = getCheckboxValue(props['주말 여부']);
