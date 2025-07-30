@@ -27,13 +27,6 @@ function getMultiSelectText(prop) {
   }
 }
 
-async function testSearch() {
-  const blogs = await searchNaverBlogs(`${searchSummary}`);
-  console.log("검색 결과: \n " + blogs.join('\n'))
-}
-
-testSearch();
-
 // ✅ Notion에서 작성되지 않은 행 가져오기
 async function fetchNotionRows() {
   const response = await notion.databases.query({
@@ -65,9 +58,6 @@ async function generateBlogText(entry) {
 
   const restaurant = props['음식점 이름']?.title?.[0]?.plain_text || '음식점';
 
-  const query = `${restaurant} ${location} ${category}`;
-  const searchSummary = (await searchNaverBlogs(query)).join('\n'); 
-
   const menu = getPlainText(props['메뉴']);
   const weekend = getCheckboxValue(props['주말 여부']);
   const time = getPlainText(props['방문시간']);
@@ -81,6 +71,9 @@ async function generateBlogText(entry) {
   const mainKeyword = keyword.split(',')[0]?.trim() || restaurant;
 
   const weekendVisit = weekend ? '주말' : '평일';
+
+  const query = `${restaurant} ${location} ${category}`;
+  const searchSummary = (await searchNaverBlogs(query)).join('\n'); 
 
   const prompt = `
 넌 네이버 블로그 맛집 20년차의 전문 작가야 그리고 SEO 최적화를 잘 지키는 작가야.
