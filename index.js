@@ -28,7 +28,7 @@ function getMultiSelectText(prop) {
 }
 
 async function testSearch() {
-  const blogs = await searcnNaverBlogs(`${searchSummary}`);
+  const blogs = await searchNaverBlogs(`${searchSummary}`);
   console.log("검색 결과: \n " + blogs.join('\n'))
 }
 
