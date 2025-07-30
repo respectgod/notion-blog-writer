@@ -1,4 +1,5 @@
 // 📁 index.js
+import {searchNaverBlogs} from './searchNaver.js'
 import { Client as NotionClient } from '@notionhq/client';
 import { OpenAI } from 'openai';
 
@@ -25,6 +26,16 @@ function getMultiSelectText(prop) {
     return '';
   }
 }
+
+const query = `${restaurant} ${location} ${category}`;
+const searchSummary = (await searchNaverBlogs(query)).join('\n');
+
+async function testSearch() {
+  const blogs = await searcnNaverBlogs(`${searchSummary}`);
+  console.log("검색 결과: \n " + blogs.join('\n'))
+}
+
+testSearch();
 
 // ✅ Notion에서 작성되지 않은 행 가져오기
 async function fetchNotionRows() {
@@ -73,7 +84,8 @@ async function generateBlogText(entry) {
 
   const prompt = `
 넌 네이버 블로그 맛집 20년차의 전문 작가야 그리고 SEO 최적화를 잘 지키는 작가야.
-검색을 할때는 구글 검색결과보다는 네이버 검색결과로 말해줘
+[네이버 블로그 검색 참고 요약]
+${searchSummary}
 메뉴는 그 음식점을 네이버에 검색해서, 가장 유명한 메뉴를 중심으로 맛과 모양을 써줘.
 아래 조건에 맞춰서 네이버 블로그 포스팅을 작성해주는데, 규칙은 반드시 지켜야 하고 규칙을 지킬수 없다면 말해줘
 
